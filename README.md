@@ -7,27 +7,19 @@
 
 ## 特性
 
-- **全量数据采集**：覆盖 Cowork 活跃会话、归档会话（audit.jsonl）、Claude Code CLI 对话记录三个数据源
+- **全量数据采集**：覆盖 Cowork（Claude Desktop 桌面端）全部会话（含归档）和 Claude Code（终端 CLI）全部对话，自动去重 Cowork 派生的子进程
 - **数据驱动分类**：不预设工作类别，首次运行时从实际对话内容自动聚类，用户确认后持久化；后续运行自动检测新类别
 - **敏感信息过滤**：可配置的过滤规则，确保对外周报不泄露财务、人事、运营数据等隐私信息
 - **自动验证**：用 subagent 交叉检查事实一致性和信息泄露
 
 ## 安装
 
-### 方式一：Skills CLI（推荐）
+下载 `GuijiOS-weekly-review.skill` 文件，双击安装到 Claude Desktop。
 
-使用 [Vercel Labs Skills CLI](https://github.com/vercel-labs/skills) 一键安装：
-
-```bash
-npx skills add JackChen-me/GuijiOS-weekly-review
-```
-
-### 方式二：手动安装
-
-将仓库克隆到你的 skills 目录：
+或者将 `GuijiOS-weekly-review/` 文件夹复制到你的 skills 目录：
 
 ```bash
-git clone https://github.com/JackChen-me/GuijiOS-weekly-review.git ~/.claude/skills/GuijiOS-weekly-review
+cp -r GuijiOS-weekly-review/ ~/.claude/skills/GuijiOS-weekly-review/
 ```
 
 ## 使用

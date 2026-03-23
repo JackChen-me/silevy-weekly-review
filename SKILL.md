@@ -1,7 +1,7 @@
 ---
 name: guijios-weekly-review
 description: >
-  自动生成每周复盘周报（对内复盘 + 对外公开周记），从 Cowork 和 Claude Code 双端对话记录中提取本周所有工作内容。
+  自动生成每周复盘周报（对内复盘 + 对外公开周记），从 Cowork（Claude Desktop 桌面端）和 Claude Code（终端 CLI）双端对话记录中提取本周所有工作内容。
   当用户提到以下场景时必须使用此 skill：写周报、生成周报、本周总结、每周复盘、weekly review、week recap、
   summarize this week、周记、对外周记、对内周报、本周做了什么、回顾本周。
   即使用户只是说"帮我写周报"、"总结一下这周"或"what did I do this week"，也应自动触发。
@@ -32,58 +32,61 @@ description: >
 
 ## 第一步：收集本周所有对话数据
 
-从三个数据源全面采集本周的工作记录。核心原则是：**不遗漏任何一个会话**。
+从两个数据源采集本周的完整工作记录。核心原则是：**不遗漏、不重复**。
 
-### 1A. Cowork 活跃会话
+### 数据架构说明
 
-调用 `list_sessions`（limit: 50），读取所有本周的会话 transcript。逐个调用 `read_transcript`（limit: 20）提取关键内容。
+用户与 Claude 的交互分为两个独立产品，数据存储在不同位置：
 
-记录每个已读取会话的 ID，用于后续去重。
+| 产品 | 说明 | 数据位置 | 对话格式 |
+|------|------|----------|----------|
+| **Cowork**（Claude Desktop 桌面端） | 可视化对话界面，可挂载文件夹、使用 MCP 工具 | `~/Library/Application Support/Claude/local-agent-mode-sessions/<org>/<user>/` | `audit.jsonl` |
+| **Claude Code**（终端 CLI 工具） | 命令行开发工具，在项目目录中运行 | `~/.claude/projects/` | `<session-id>.jsonl` |
 
-### 1B. Cowork 归档会话（元数据 + 完整对话内容）
+> **重要**：Cowork 会话在底层会派生 Claude Code 子进程，这些子进程的对话也会出现在 `~/.claude/projects/` 中。采集时需要**去重**，避免同一段工作被计算两次。去重方法：Cowork 元数据（`.json`）中的 `cliSessionId` 字段对应 `~/.claude/projects/` 中的 `.jsonl` 文件名，匹配到的就是 Cowork 派生的，应从 Claude Code 数据中排除。
+
+### 1A. Cowork 对话记录（主数据源）
 
 请求挂载目录 `~/Library/Application Support/Claude`。
 
-#### 1B-1. 提取元数据
+进入 `local-agent-mode-sessions/<org-id>/<user-id>/` 目录。每个 Cowork 会话对应一个子目录 `local_<session-id>/`，其中包含：
 
-进入 `claude-code-sessions/<org-id>/<user-id>/` 目录，找到 `local_*.json` 会话元数据文件。
+- `audit.jsonl`：完整对话记录（每行一个 JSON 对象）
+- `<session-id>.json`（与目录同级）：会话元数据（title、时间、cwd、isArchived 等）
 
-用 Python 脚本批量提取字段：sessionId、title、createdAt、lastActivityAt、isArchived、cwd。将时间戳（毫秒）转为日期，筛选本周范围内的会话（当前日期往前推 7 天）。
-
-与 1A 已读取的会话 ID 对比，标记出 1A 未覆盖的归档会话。
-
-> **注意**：`claude-code-sessions/` 中的 JSON 文件**只有元数据**（title、时间、cwd），没有对话正文。
-
-#### 1B-2. 读取对话内容
-
-完整对话内容存储在 `local-agent-mode-sessions/<org-id>/<user-id>/` 目录下。每个 Cowork 会话对应一个子目录 `local_<session-id>/`，其中包含：
-
-- `audit.jsonl`：完整对话记录，每行一个 JSON 对象
-- `outputs/`：会话产出文件
-
-`audit.jsonl` 格式示例：
+`audit.jsonl` 格式：
 ```jsonl
 {"type":"user","uuid":"...","session_id":"...","message":{"role":"user","content":"用户消息"}}
 {"type":"assistant","uuid":"...","session_id":"...","message":{"role":"assistant","content":"助手回复"}}
 ```
 
 执行步骤：
-1. 列出 `local-agent-mode-sessions/<org-id>/<user-id>/` 下所有含 `audit.jsonl` 的会话目录
-2. 用 `stat` 获取修改时间，筛选本周修改的
-3. 排除 1A 中已读取的活跃会话 ID
+1. 列出该目录下所有 `local_*/audit.jsonl`
+2. 读取同级的 `.json` 元数据文件，使用其中的 `lastActivityAt` 字段（毫秒时间戳）判断是否属于本周（往前推 7 天）。如果该字段缺失，回退到 `stat` 获取文件修改时间
+3. 从元数据中提取 title、cwd、cliSessionId（`cliSessionId` 是 Cowork 派生的 Claude Code 子进程的会话 ID，并非所有会话都有此字段）
 4. 用 Python 脚本提取每个会话的：用户消息摘要（前 150 字符）、消息总行数、核心主题
 5. 对于内容丰富的会话（>100 行），可用 subagent 并行读取
+6. **记录所有非空的 `cliSessionId`**，用于下一步去重（没有 `cliSessionId` 的会话是纯 Cowork 会话，未派生 Claude Code 子进程）
 
-> **注意**：
-> - 纯 Claude Code CLI 会话不会有 Cowork 对话记录（没有 audit.jsonl）
-> - 有 audit.jsonl 的会话，优先读取 audit.jsonl 而非仅依赖元数据中的 title
-> - `local-agent-mode-sessions/` 中可能有未出现在 `claude-code-sessions/` 的会话（正在进行的），也需检查
+> **补充数据源**：也可调用 `list_sessions` API（limit: 50）获取当前活跃的 Cowork 会话，通过 `read_transcript` 快速预览。但注意 API 只能看到约 30% 的会话，`audit.jsonl` 才是完整数据。
 
-### 1C. Claude Code 对话记录
+### 1B. Claude Code 终端对话记录
 
 请求挂载目录 `~/.claude`。
 
-在 `projects/` 目录下，用 `find` 和 `stat` 找出本周修改过的所有 `.jsonl` 对话文件（排除 subagents 子目录）。用 bash 提取每个文件的前几条 user 消息（`grep '"role":"human"'`），了解对话主题。按项目目录名分组汇总。
+在 `projects/` 目录下，每个子目录名是项目路径的编码形式（路径分隔符 `/` 替换为 `-`，如 `/Users/me/DEV/myproject` → `-Users-me-DEV-myproject`），其中的 `.jsonl` 文件就是该项目下的对话记录。
+
+`projects/` 下的 `.jsonl` 格式：
+```jsonl
+{"type":"queue-operation","operation":"enqueue","timestamp":"...","sessionId":"...","content":"用户消息内容"}
+{"type":"assistant","message":{"role":"assistant","content":[...]},"timestamp":"..."}
+```
+
+执行步骤：
+1. 用 `find` 和 `stat` 找出本周修改过的所有 `.jsonl` 文件（排除 `subagents/` 子目录）
+2. **去重**：将每个 `.jsonl` 的文件名（即 sessionId）与 1A 中收集的 `cliSessionId` 集合比对。匹配到的是 Cowork 派生的子进程，**跳过**（已在 1A 中采集）
+3. 对剩余的纯终端 Claude Code 对话，提取首条用户消息了解主题
+4. 按项目目录名分组汇总
 
 ---
 
