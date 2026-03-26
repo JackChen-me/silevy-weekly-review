@@ -1,5 +1,5 @@
 ---
-name: guijios-weekly-review
+name: GuijiOS-weekly-review
 description: >
   自动生成每周复盘周报（对内复盘 + 对外公开周记），从 Claude Desktop（Cowork + Code tab）和 Claude Code 终端 CLI 的全部对话记录中提取本周所有工作内容。
   当用户提到以下场景时必须使用此 skill：写周报、生成周报、本周总结、每周复盘、weekly review、week recap、
