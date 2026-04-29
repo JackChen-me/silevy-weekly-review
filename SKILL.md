@@ -1,5 +1,5 @@
 ---
-name: GuijiOS-weekly-review
+name: silevy-weekly-review
 description: >
   自动生成每周复盘周报（对内复盘 + 对外公开周记），从 Claude Desktop（Cowork + Code tab）和 Claude Code 终端 CLI 的全部对话记录中提取本周所有工作内容。
   当用户提到以下场景时必须使用此 skill：写周报、生成周报、本周总结、每周复盘、weekly review、week recap、
@@ -38,9 +38,9 @@ description: >
 
 | 场景 | 行为 |
 |------|------|
-| 用户传了日期参数（如 `/guijios-weekly-review 2026-03-16 2026-03-22`） | 直接使用指定的起止日期 |
+| 用户传了日期参数（如 `/silevy-weekly-review 2026-03-16 2026-03-22`） | 直接使用指定的起止日期 |
 | 用户未传参数，今天是**周一** | 默认取**上周一 00:00 ~ 上周日 23:59**（刚过去的完整自然周） |
-| 用户未传参数，今天是**周二~周日** | 默认取**本周一 00:00 ~ 昨天 23:59**（本周已过去的天数），并告知用户："本周还没结束，当前覆盖周一到昨天。如果你想生成上周的周报，请传参：`/guijios-weekly-review YYYY-MM-DD YYYY-MM-DD`" |
+| 用户未传参数，今天是**周二~周日** | 默认取**本周一 00:00 ~ 昨天 23:59**（本周已过去的天数），并告知用户："本周还没结束，当前覆盖周一到昨天。如果你想生成上周的周报，请传参：`/silevy-weekly-review YYYY-MM-DD YYYY-MM-DD`" |
 
 > 所有时间均按 **UTC+8（台北时间）** 计算。
 

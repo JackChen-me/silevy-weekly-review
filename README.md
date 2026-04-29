@@ -1,4 +1,4 @@
-# GuijiOS Weekly Review
+# Silevy Weekly Review
 
 自动生成每周复盘周报的 Claude Skill，从 Claude Desktop（Cowork + Code tab）和 Claude Code 终端 CLI 的全部对话记录中提取本周所有工作内容，输出两份报告：
 
@@ -19,7 +19,7 @@
 使用 [Vercel Labs Skills CLI](https://github.com/vercel-labs/skills) 一键安装：
 
 ```bash
-npx skills add JackChen-me/GuijiOS-weekly-review
+npx skills add JackChen-me/silevy-weekly-review
 ```
 
 ### 方式二：手动安装
@@ -27,7 +27,7 @@ npx skills add JackChen-me/GuijiOS-weekly-review
 将仓库克隆到你的 skills 目录：
 
 ```bash
-git clone https://github.com/JackChen-me/GuijiOS-weekly-review.git ~/.claude/skills/GuijiOS-weekly-review
+git clone https://github.com/JackChen-me/silevy-weekly-review.git ~/.claude/skills/silevy-weekly-review
 ```
 
 ## 使用
@@ -65,7 +65,7 @@ weekly review
 ## 文件结构
 
 ```
-GuijiOS-weekly-review/
+silevy-weekly-review/
 ├── SKILL.md                      # 主指令文件
 ├── README.md                     # 本文件
 ├── references/

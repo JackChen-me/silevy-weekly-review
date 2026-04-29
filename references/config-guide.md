@@ -1,6 +1,6 @@
 # 配置指南
 
-`config.json` 是 GuijiOS-weekly-review 的个性化配置文件。首次运行时由 skill 引导用户创建，之后每次运行自动读取。
+`config.json` 是 silevy-weekly-review 的个性化配置文件。首次运行时由 skill 引导用户创建，之后每次运行自动读取。
 
 用户也可以手动编辑此文件来调整周报的各项设置。
 
